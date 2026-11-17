@@ -22,6 +22,17 @@ on:
         description: "Embed Stela.app, as the release does"
         type: boolean
         default: true
+      app_runner:
+        # The release uses macos-26 (arm64), whose queue can drop jobs when
+        # GitHub lacks capacity. Stela.app needs only Swift 5.9 and macOS 13,
+        # and build.sh builds it for arm64 on either architecture.
+        description: "macOS runner for Stela.app"
+        type: choice
+        options:
+          - macos-15-intel
+          - macos-15
+          - macos-26
+        default: macos-15-intel
 
 permissions:
   contents: read
@@ -62,7 +73,7 @@ jobs:
   app:
     needs: source
     if: inputs.app
-    runs-on: macos-26
+    runs-on: ${{ inputs.app_runner }}
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
@@ -72,10 +83,14 @@ jobs:
           persist-credentials: false
 
       - name: Build Stela.app
+        env:
+          STELA_APP_ARCH: arm64
         run: |
           swift --version
           app="$(bash "$APP/build.sh" | tee /dev/stderr | tail -1)"
           [[ -f "$app/Contents/Info.plist" ]] || { echo "::error::$APP/build.sh named no app bundle: $app"; exit 1; }
+          lipo -verify_arch arm64 "$app/Contents/MacOS/Stela" || { echo "::error::Stela.app is not arm64"; exit 1; }
+          echo "Stela.app built on ${{ inputs.app_runner }} ($(uname -m)), $(swift --version 2>&1 | head -1)" >> "$GITHUB_STEP_SUMMARY"
           tar -C "$(dirname "$app")" -cf Stela.app.tar Stela.app
 
       - uses: actions/upload-artifact@v4
