@@ -116,9 +116,12 @@ Revisão de 17/11/2026. Substitui o `C:\projetos\macos-stela\PLANO.md` de 16/11 
 
 ### Fase 3 — Compilação na nuvem
 1. Fork `Dias0202/Stela`. A `main` do fork espelha a oficial. O branch `meu-pc` guarda este plano e o workflow `build-test`, e só adiciona arquivos novos, para nunca dar conflito com a oficial.
-2. O workflow roda só manualmente (Actions → build-test → Run workflow), com três entradas: repositório, ref e se embute o Stela.app. Gera dois artefatos: `stela-efi` e `stela-test-windows-x86_64` (`stela.exe` com o mesmo `stela.efi` dentro).
+2. O workflow roda só manualmente (Actions → build-test → Run workflow), com quatro entradas: repositório, ref, se embute o Stela.app e o runner de macOS do Stela.app. O padrão do runner é `macos-15-intel`, porque a fila do `macos-26` (arm64) cancelou o job por falta de capacidade. Gera dois artefatos, guardados por 14 dias: `stela-efi` e `stela-test-windows-x86_64` (`stela.exe` com o mesmo `stela.efi` dentro).
+   - Primeiro build (17/11, v0.5.0 `cd732c1`, execução 44110392484): ~45 min sem cache, com drivers Vulkan nouveau, intel e amd.
 3. Validação obrigatória: compilar a v0.5.0 sem alterações, fazer boot e comparar com a oficial. Se os números não baterem dentro da variação, nosso build está diferente e nada do que vier depois vale.
-4. Instalar no pendrive de teste com `.\stela.exe update --efi stela.efi`, usando o `stela.exe` do mesmo build.
+4. Instalar no pendrive de teste com `.\stela.exe update`, usando o `stela.exe` do próprio build, que já carrega o `stela.efi` dele.
+   - O `update` identifica o `stela.efi` pelo hash SHA-256, não pelo número da versão (`crates/stela-cli/src/setup/update.rs:39-41` e `:77`). Por isso a 0.5.0 compilada por nós entra por cima da oficial, e o `stela.exe` oficial volta para a oficial do mesmo jeito.
+   - A troca de `stela.efi` troca o tradutor, então o cache de traduções recomeça e é preciso repetir os 2 boots de aquecimento.
 
 ### Fase 4 — Acompanhar a versão em desenvolvimento
 Testar a `main` de tempos em tempos contra a v0.5.0. Ela só substitui a v0.5.0 se ganhar na medição.
