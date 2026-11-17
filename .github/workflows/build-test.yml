@@ -89,7 +89,7 @@ jobs:
           swift --version
           app="$(bash "$APP/build.sh" | tee /dev/stderr | tail -1)"
           [[ -f "$app/Contents/Info.plist" ]] || { echo "::error::$APP/build.sh named no app bundle: $app"; exit 1; }
-          lipo -verify_arch arm64 "$app/Contents/MacOS/Stela" || { echo "::error::Stela.app is not arm64"; exit 1; }
+          lipo "$app/Contents/MacOS/Stela" -verify_arch arm64 || { echo "::error::Stela.app is not arm64"; exit 1; }
           echo "Stela.app built on ${{ inputs.app_runner }} ($(uname -m)), $(swift --version 2>&1 | head -1)" >> "$GITHUB_STEP_SUMMARY"
           tar -C "$(dirname "$app")" -cf Stela.app.tar Stela.app
 
